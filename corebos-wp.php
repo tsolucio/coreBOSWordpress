@@ -231,7 +231,54 @@ class CBWP {
     
     // Add project from wpcf7
     public function save_project_from_wpcf7($contact_form) {
-        // To do.
+        $submission = WPCF7_Submission::get_instance();
+
+        if ($submission) {
+            $projectname = $service_wsid = $status = $contact_wsid = $description = "";
+            $servicename = $contact_form->title();
+            $posted_data = $submission->get_posted_data();
+
+            // Get service wsid
+            $query = "select id from Services where servicename = '".$servicename."';";
+            $result  = $this->wsClient->doQuery($query);
+            if ($result) {
+                $service_wsid = $result[0]["id"];
+            }
+
+            // Get account wsid
+            $query = "select id from Accounts where cod = '".$this->currentUser->extra_info."';";
+            $result  = $this->wsClient->doQuery($query);
+            if ($result) {
+                $contact_wsid = $result[0]["id"];
+            }
+
+            if (isset($posted_data['your-subject']) && !empty($posted_data['your-subject'])) {
+                $projectname = $posted_data['your-subject'];
+            }
+
+            if (isset($posted_data['your-message']) && !empty($posted_data['your-message'])) {
+                $description = $posted_data['your-message'];
+            }
+
+            $status = "Pending";
+
+            // Add booking as project in coreBOS
+            if ($projectname != "" && $service_wsid != "" && $status != "" && $contact_wsid != "") {
+                $moduleName = 'Project';
+                $data = array(
+                    'projectname' => $projectname,
+                    'linktoaccountscontacts' => $contact_wsid,
+                    'projectstatus' => $status,
+                    'viacontacto' => "Website",
+                    'startdate' => date("Y-m-d"),
+                    'srvid' => $service_wsid,
+                    'description' => $description,
+                    'assigned_user_id' => $this->wsClient->_userid
+                );
+
+                $create = $this->wsClient->doCreate($moduleName, $data);
+            }
+        }
     }
 }
 
